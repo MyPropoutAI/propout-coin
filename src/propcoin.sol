@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract PropCoin is ERC20, Ownable {
 
+    constructor() ERC20("PropCoin", "PROP")Ownable(msg.sender) {
+        _mint(msg.sender, initialSupply);
+
+    }
     // Initial supply of tokens
     uint256 private initialSupply = 1000000 * 10 ** decimals();
 
@@ -32,10 +36,7 @@ contract PropCoin is ERC20, Ownable {
 
     mapping(address => Lock[]) private locks;
 
-    constructor() ERC20("PropCoin", "PROP") {
-        // Mint initial supply to the owner of the contract
-        _mint(msg.sender, initialSupply);
-    }
+
 
     // Function to mint new tokens, only callable by the owner
     function mint(address to, uint256 amount) external onlyOwner {
@@ -43,7 +44,7 @@ contract PropCoin is ERC20, Ownable {
     }
 
     // Function to burn tokens from the caller's account
-    function burn(uint256 amount) external {
+    function burn(uint256 amount) public onlyOwner {
         _burn(msg.sender, amount);
     }
 
@@ -55,21 +56,11 @@ contract PropCoin is ERC20, Ownable {
         }
     }
 
-    // Function to freeze or unfreeze an account
-    function setFreezeAccount(address account, bool freeze) external onlyOwner {
-        frozenAccounts[account] = freeze;
-        emit AccountFrozen(account, freeze);
-    }
 
-    // Override transfer function to prevent transfer from/to frozen accounts
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
-        require(!frozenAccounts[from], "ERC20: sender account is frozen");
-        require(!frozenAccounts[to], "ERC20: recipient account is frozen");
-        super._beforeTokenTransfer(from, to, amount);
-    }
+
 
     // Function to lock tokens with a specific unlock time
-    function lockTokens(address account, uint256 amount, uint256 duration) external onlyOwner {
+    function lockTokens(address account, uint256 amount, uint256 duration) public onlyOwner {
         require(balanceOf(account) >= amount, "ERC20: insufficient balance to lock");
 
         // Lock the tokens
@@ -107,11 +98,11 @@ contract PropCoin is ERC20, Ownable {
     }
 
     // Override transfer function to lock tokens if they are transferred to the contract address
-    function _transfer(address from, address to, uint256 amount) internal override {
+    function _transfer(address from, address to, uint256 amount) internal  {
         super._transfer(from, to, amount);
         if (to == address(this)) {
             // Automatically lock tokens when transferred to the contract
-            lockTokens(from, amount, 30 days); // Example lock duration of 30 days
+            lockTokens(from, amount, 30 days);
         }
     }
 }
